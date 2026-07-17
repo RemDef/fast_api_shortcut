@@ -10,7 +10,13 @@ from tasks.services import create_task
 router = APIRouter()
 
 
-@router.post("/", response_model=TaskResponse)
+@router.post(
+    "/",
+    response_model=TaskResponse,
+    summary="Создать задачу",
+    description="Создаёт новую задачу для текущего авторизованного пользователя.",
+    response_description="Задача создана",
+)
 async def create_task_endpoint(
     body: CreateTaskRequest,
     user: User = Depends(get_current_user),
@@ -24,7 +30,6 @@ async def create_task_endpoint(
     )
     return TaskResponse(
         id=task.id,
-        user_id=task.user_id,
         title=task.title,
         description=task.description,
         is_done=task.is_done,

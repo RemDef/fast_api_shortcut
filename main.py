@@ -18,7 +18,12 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    swagger_ui_parameters={
+        "defaultModelsExpandDepth": 3,
+    },
+)
 
 app.include_router(router)
 
@@ -29,4 +34,4 @@ def check_site_work():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", reload=True, reload_dirs=["."], port=7997)
+    uvicorn.run("main:app", reload=True, reload_dirs=["."], port=7994)

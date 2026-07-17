@@ -7,7 +7,13 @@ from users.services import get_users
 router = APIRouter()
 
 
-@router.get("/", response_model=list[UserResponse])
+@router.get(
+    "/",
+    response_model=list[UserResponse],
+    summary="Получить пользователей",
+    description="Получить список доступных пользователей.",
+    response_description="Пользователи получены",
+)
 async def get_users_endpoint(
     session: AsyncSession = Depends(get_session),
 ) -> list[UserResponse]:

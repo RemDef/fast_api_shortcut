@@ -10,7 +10,12 @@ from users.services import authenticate_user
 router = APIRouter()
 
 
-@router.post("/login")
+@router.post(
+    "/login",
+    summary="Войти в систему",
+    description="Авторизация по логину и паролю. Возвращает JWT токен.",
+    response_description="Токен доступа выдан",
+)
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_session),

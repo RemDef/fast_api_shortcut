@@ -1,25 +1,39 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v1.tasks.responses import TASK_NOT_FOUND_RESPONSES
 from api.v1.tasks.create.response import TaskResponse
 from api.v1.auth.dependencies import get_current_user
 from database import get_session
 from tasks.services import get_task_by_id
 from users.models import User
+from tasks.exceptions import TaskNotFoundError
+from common.errors import ErrorMessages
 
-router = APIRouter()
+router = APIRouter(responses=TASK_NOT_FOUND_RESPONSES)
 
 
-@router.get("/{task_id}", response_model=TaskResponse)
+@router.get(
+    "/{task_id}",
+    response_model=TaskResponse,
+    summary="Получить задачу пользователя по id",
+    description="Получает задачу текущего авторизованного пользователя по id.",
+    response_description="Задача получена",
+)
 async def get_task_endpoint(
     task_id: str,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> TaskResponse:
-    task = await get_task_by_id(session, task_id=task_id, user_id=user.id)
+    try:
+        task = await get_task_by_id(session, task_id=task_id, user_id=user.id)
+    except TaskNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ErrorMessages.TASK_NOT_FOUND,
+        )
     return TaskResponse(
         id=task.id,
-        user_id=task.user_id,
         title=task.title,
         description=task.description,
         is_done=task.is_done,

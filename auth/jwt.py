@@ -5,7 +5,7 @@ from jose import jwt
 from config import settings
 
 
-def create_access_token(*, user_id: str) -> str:
+def create_access_token(user_id: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.jwt_access_token_expire_minutes
     )

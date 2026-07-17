@@ -2,11 +2,18 @@ from fastapi import APIRouter, Depends
 from api.v1.users.response import UserResponse
 from users.models import User
 from api.v1.users.dependencies import get_user_or_404
+from api.v1.users.responses import USER_NOT_FOUND_RESPONSES
 
-router = APIRouter()
+router = APIRouter(responses=USER_NOT_FOUND_RESPONSES)
 
 
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get(
+    "/{user_id}",
+    response_model=UserResponse,
+    summary="Получить пользователя",
+    description="Получить данные пользователя по id.",
+    response_description="Пользователь получен",
+)
 async def get_user_endpoint(
     user: User = Depends(get_user_or_404),
 ) -> UserResponse:
