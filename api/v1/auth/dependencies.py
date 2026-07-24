@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from common.errors import ErrorMessages
 from config import settings
 from database import get_session
-from users.models import User
+from users.exceptions import UserNotFoundError
+from users.services import get_user_by_id
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="v1/auth/login")
 
@@ -14,7 +15,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="v1/auth/login")
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_session),
-) -> User:
+) -> str:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail=ErrorMessages.INVALID_TOKEN,
@@ -32,7 +33,8 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    user = await session.get(User, user_id)
-    if user is None:
+    try:
+        user = await get_user_by_id(session=session, user_id=user_id)
+    except UserNotFoundError:
         raise credentials_exception
-    return user
+    return user.id

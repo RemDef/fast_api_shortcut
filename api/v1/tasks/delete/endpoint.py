@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from api.v1.tasks.responses import TASK_NOT_FOUND_RESPONSES
-from database import get_session
-from tasks.services import delete_task
-from users.models import User
 from api.v1.auth.dependencies import get_current_user
-from tasks.exceptions import TaskNotFoundError
+from api.v1.tasks.responses import TASK_NOT_FOUND_RESPONSES
 from common.errors import ErrorMessages
+from database import get_session
+from tasks.exceptions import TaskNotFoundError
+from tasks.services import delete_task
 
 router = APIRouter(responses=TASK_NOT_FOUND_RESPONSES)
 
@@ -19,10 +18,10 @@ router = APIRouter(responses=TASK_NOT_FOUND_RESPONSES)
     response_description="Задача удалена",
 )
 async def delete_task_endpoint(
-    task_id: str, user: User = Depends(get_current_user), session=Depends(get_session)
+    task_id: str, user_id: str = Depends(get_current_user), session=Depends(get_session)
 ) -> None:
     try:
-        await delete_task(session=session, task_id=task_id, user_id=user.id)
+        await delete_task(session=session, task_id=task_id, user_id=user_id)
     except TaskNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

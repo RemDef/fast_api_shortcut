@@ -1,6 +1,6 @@
 from datetime import date, datetime
-
 from typing import Annotated
+
 from pydantic import BaseModel, EmailStr, Field
 
 

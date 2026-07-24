@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends
-from api.v1.users.response import UserResponse
-from users.models import User
+
+from api.v1.users.common.schemas import UserResponse
 from api.v1.users.dependencies import get_user_or_404
 from api.v1.users.responses import USER_NOT_FOUND_RESPONSES
+from users.models import User
 
 router = APIRouter(responses=USER_NOT_FOUND_RESPONSES)
 

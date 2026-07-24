@@ -1,7 +1,13 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Boolean, DateTime, func, ForeignKey
+
 from common.models import Base
+
+if TYPE_CHECKING:
+    from users.models import User
 
 
 class Task(Base):

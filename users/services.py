@@ -1,13 +1,15 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from users.security import hash_password, verify_password
+
 from users.dto import RegisterUserDTO
 from users.exceptions import UserNotFoundError
-
 from users.models import User
+from users.security import hash_password, validate_password_strength, verify_password
 
 
 async def register_user(session: AsyncSession, *, data: RegisterUserDTO) -> User:
+    validate_password_strength(data.password)
+
     user = User(
         username=data.username,
         email=data.email,

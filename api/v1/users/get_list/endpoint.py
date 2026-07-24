@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.v1.users.common.schemas import UserResponse
 from database import get_session
-from api.v1.users.response import UserResponse
 from users.services import get_users
 
 router = APIRouter()

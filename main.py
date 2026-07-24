@@ -1,14 +1,13 @@
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from database import db_helper
-from common.models import Base
-from users.models import User  # noqa: F401
-from tasks.models import Task  # noqa: F401
-
 
 import uvicorn
+from fastapi import FastAPI
 
 from api.router import router
+from common.models import Base
+from database import db_helper
+from tasks.models import Task  # noqa: F401
+from users.models import User  # noqa: F401
 
 
 @asynccontextmanager

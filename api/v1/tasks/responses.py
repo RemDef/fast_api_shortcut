@@ -1,7 +1,9 @@
+from http import HTTPStatus
+
 from common.errors import ErrorMessages
 
 TASK_NOT_FOUND_RESPONSES = {
-    404: {
+    HTTPStatus.NOT_FOUND: {
         "description": "Задача не найдена",
         "content": {
             "application/json": {

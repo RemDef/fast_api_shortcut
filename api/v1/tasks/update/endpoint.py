@@ -1,15 +1,14 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.tasks.responses import TASK_NOT_FOUND_RESPONSES
-from api.v1.tasks.create.response import TaskResponse
-from api.v1.tasks.update.request import UpdateTaskRequest
 from api.v1.auth.dependencies import get_current_user
-from tasks.services import update_task, UNSET
-from database import get_session
-from users.models import User
-from tasks.exceptions import TaskNotFoundError
+from api.v1.tasks.common.schemas import TaskResponse
+from api.v1.tasks.responses import TASK_NOT_FOUND_RESPONSES
+from api.v1.tasks.update.request import UpdateTaskRequest
 from common.errors import ErrorMessages
+from database import get_session
+from tasks.exceptions import TaskNotFoundError
+from tasks.services import UNSET, update_task
 
 router = APIRouter(responses=TASK_NOT_FOUND_RESPONSES)
 
@@ -24,7 +23,7 @@ router = APIRouter(responses=TASK_NOT_FOUND_RESPONSES)
 async def update_task_endpoint(
     task_id: str,
     body: UpdateTaskRequest,
-    user: User = Depends(get_current_user),
+    user_id: str = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> TaskResponse:
 
@@ -33,7 +32,7 @@ async def update_task_endpoint(
         task = await update_task(
             session=session,
             task_id=task_id,
-            user_id=user.id,
+            user_id=user_id,
             title=updates.get("title", UNSET),
             description=updates.get("description", UNSET),
             is_done=updates.get("is_done", UNSET),

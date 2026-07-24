@@ -1,11 +1,12 @@
 from datetime import datetime
 
+from sqlalchemy import or_, select, case, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
+
+from users.models import User
+from .constants import TASK_SORTABLE_FIELDS
 from .dto import TaskDTO
 from .exceptions import TaskNotFoundError
-from .constants import TASK_SORTABLE_FIELDS
-
 from .models import Task
 
 UNSET = object()
@@ -73,7 +74,9 @@ async def get_tasks(
         stmt = stmt.where(Task.created_at >= created_from)
     if created_to is not None:
         stmt = stmt.where(Task.created_at <= created_to)
-    if search is not None:
+
+    search = search.lower().strip() if isinstance(search, str) else None
+    if search:
         pattern = f"%{search}%"
         stmt = stmt.where(
             or_(
@@ -86,7 +89,7 @@ async def get_tasks(
     order_clause = column.desc() if direction == "desc" else column.asc()
 
     result = await session.execute(
-        stmt.order_by(order_clause).limit(limit).offset(offset)
+        stmt.order_by(order_clause, Task.id).limit(limit).offset(offset)
     )
 
     return [_to_dto(task) for task in result.scalars().all()]
@@ -119,3 +122,69 @@ async def delete_task(session: AsyncSession, *, task_id: str, user_id: str) -> N
     task = await _get_task_or_raise(session, task_id=task_id, user_id=user_id)
     await session.delete(task)
     await session.commit()
+
+
+async def get_tasks_stats_total(session: AsyncSession, *, user_id: str) -> dict:
+    stmt = select(
+        func.count().label("total"),
+        func.sum(case((Task.is_done.is_(True), 1), else_=0)).label("done"),
+        func.sum(case((Task.is_done.is_(False), 1), else_=0)).label("not_done"),
+    ).where(Task.user_id == user_id)
+    row = (await session.execute(stmt)).one()
+    total = int(row.total or 0)
+    done = int(row.done or 0)
+    not_done = int(row.not_done or 0)
+    if total == 0:
+        percent = 0.0
+    else:
+        percent = round(done * 100.0 / total, 2)
+    return {
+        "total": total,
+        "done": done,
+        "not_done": not_done,
+        "completion_percent": percent,
+    }
+
+
+async def get_tasks_stats_by_day(session: AsyncSession, *, user_id: str) -> list[dict]:
+    day = func.date(Task.created_at)
+    stmt = (
+        select(
+            day.label("day"),
+            func.count().label("count"),
+        )
+        .where(Task.user_id == user_id)
+        .group_by(day)
+        .order_by(day)
+    )
+    rows = (await session.execute(stmt)).all()
+    return [{"day": str(r.day), "count": int(r.count)} for r in rows]
+
+
+async def get_active_users(
+    session: AsyncSession,
+    *,
+    limit: int = 10,
+) -> list[dict]:
+    open_tasks = func.count(Task.id).label("open_tasks")
+    stmt = (
+        select(
+            User.id.label("user_id"),
+            User.username.label("username"),
+            open_tasks,
+        )
+        .join(Task, Task.user_id == User.id)
+        .where(Task.is_done.is_(False))
+        .group_by(User.id, User.username)
+        .order_by(open_tasks.desc(), User.username.asc())
+        .limit(limit)
+    )
+    rows = (await session.execute(stmt)).all()
+    return [
+        {
+            "user_id": r.user_id,
+            "username": r.username,
+            "open_tasks": int(r.open_tasks),
+        }
+        for r in rows
+    ]

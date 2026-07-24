@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from sqlalchemy import String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, declared_attr
+from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
 
 class Base(DeclarativeBase):
@@ -12,7 +12,5 @@ class Base(DeclarativeBase):
         return cls.__name__.lower()
 
     id: Mapped[str] = mapped_column(
-        String(36),
-        primary_key=True,
-        default=lambda: str(uuid4())
+        String(36), primary_key=True, default=lambda: str(uuid4())
     )

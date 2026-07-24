@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database import get_session
-from users.services import delete_user
-from users.exceptions import UserNotFoundError
-from common.errors import ErrorMessages
 from api.v1.users.responses import USER_NOT_FOUND_RESPONSES
+from common.errors import ErrorMessages
+from database import get_session
+from users.exceptions import UserNotFoundError
+from users.services import delete_user
 
 router = APIRouter(responses=USER_NOT_FOUND_RESPONSES)
 
