@@ -6,16 +6,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from common.errors import ErrorMessages
 from config import settings
 from database import get_session
+from users.dto import UserDTO
 from users.exceptions import UserNotFoundError
 from users.services import get_user_by_id
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="v1/auth/login")
 
 
-async def get_current_user(
+async def get_current_user_model(
     token: str = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_session),
-) -> str:
+) -> UserDTO:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail=ErrorMessages.INVALID_TOKEN,
@@ -34,7 +35,23 @@ async def get_current_user(
         raise credentials_exception
 
     try:
-        user = await get_user_by_id(session=session, user_id=user_id)
+        return await get_user_by_id(session=session, user_id=user_id)
     except UserNotFoundError:
         raise credentials_exception
+
+
+async def get_current_user(
+    user: UserDTO = Depends(get_current_user_model),
+) -> str:
     return user.id
+
+
+async def require_admin(
+    user: UserDTO = Depends(get_current_user_model),
+) -> UserDTO:
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав",
+        )
+    return user

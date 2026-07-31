@@ -20,4 +20,4 @@ async def get_tasks_stats_total_endpoint(
     session: AsyncSession = Depends(get_session),
 ) -> TasksStatsTotalResponse:
     stats = await get_tasks_stats_total(session=session, user_id=user_id)
-    return TasksStatsTotalResponse(**stats)
+    return TasksStatsTotalResponse.from_dto(dto=stats)

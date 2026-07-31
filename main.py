@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -6,8 +7,14 @@ from fastapi import FastAPI
 from api.router import router
 from common.models import Base
 from database import db_helper
+from middleware.logging import LoggingMiddleware
 from tasks.models import Task  # noqa: F401
 from users.models import User  # noqa: F401
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+)
 
 
 @asynccontextmanager
@@ -23,6 +30,8 @@ app = FastAPI(
         "defaultModelsExpandDepth": 3,
     },
 )
+
+app.add_middleware(LoggingMiddleware)  # type: ignore[arg-type]
 
 app.include_router(router)
 

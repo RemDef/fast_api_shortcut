@@ -1,9 +1,12 @@
 from datetime import datetime
+from typing import cast
 
-from sqlalchemy import or_, select, case, func
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from tasks.dto import ActiveUserDTO, TasksStatsByDayDTO, TasksStatsTotalDTO
 from users.models import User
+
 from .constants import TASK_SORTABLE_FIELDS
 from .dto import TaskDTO
 from .exceptions import TaskNotFoundError
@@ -95,6 +98,38 @@ async def get_tasks(
     return [_to_dto(task) for task in result.scalars().all()]
 
 
+async def count_tasks(
+    session: AsyncSession,
+    *,
+    user_id: str,
+    is_done: bool | None = None,
+    created_from: datetime | None = None,
+    created_to: datetime | None = None,
+    search: str | None = None,
+) -> int:
+    stmt = select(func.count()).select_from(Task).where(Task.user_id == user_id)
+
+    if is_done is not None:
+        stmt = stmt.where(Task.is_done == is_done)
+    if created_from is not None:
+        stmt = stmt.where(Task.created_at >= created_from)
+    if created_to is not None:
+        stmt = stmt.where(Task.created_at <= created_to)
+
+    search = search.strip().lower() if search else None
+    if search:
+        pattern = f"%{search}%"
+        stmt = stmt.where(
+            or_(
+                Task.title.ilike(pattern),
+                Task.description.ilike(pattern),
+            )
+        )
+
+    result = await session.execute(stmt)
+    return int(result.scalar_one())
+
+
 async def update_task(
     session: AsyncSession,
     *,
@@ -107,11 +142,11 @@ async def update_task(
     task = await _get_task_or_raise(session, task_id=task_id, user_id=user_id)
 
     if title is not UNSET:
-        task.title = title
+        task.title = cast(str, title)
     if description is not UNSET:
-        task.description = description
+        task.description = cast(str | None, description)
     if is_done is not UNSET:
-        task.is_done = is_done
+        task.is_done = cast(bool, is_done)
 
     await session.commit()
     await session.refresh(task)
@@ -124,7 +159,9 @@ async def delete_task(session: AsyncSession, *, task_id: str, user_id: str) -> N
     await session.commit()
 
 
-async def get_tasks_stats_total(session: AsyncSession, *, user_id: str) -> dict:
+async def get_tasks_stats_total(
+    session: AsyncSession, *, user_id: str
+) -> TasksStatsTotalDTO:
     stmt = select(
         func.count().label("total"),
         func.sum(case((Task.is_done.is_(True), 1), else_=0)).label("done"),
@@ -138,34 +175,37 @@ async def get_tasks_stats_total(session: AsyncSession, *, user_id: str) -> dict:
         percent = 0.0
     else:
         percent = round(done * 100.0 / total, 2)
-    return {
-        "total": total,
-        "done": done,
-        "not_done": not_done,
-        "completion_percent": percent,
-    }
+    return TasksStatsTotalDTO(
+        total=total,
+        done=done,
+        not_done=not_done,
+        completion_percent=percent,
+    )
 
 
-async def get_tasks_stats_by_day(session: AsyncSession, *, user_id: str) -> list[dict]:
+async def get_tasks_stats_by_day(
+    session: AsyncSession, *, user_id: str
+) -> list[TasksStatsByDayDTO]:
     day = func.date(Task.created_at)
     stmt = (
         select(
             day.label("day"),
-            func.count().label("count"),
+            func.count().label("tasks_count"),
         )
         .where(Task.user_id == user_id)
         .group_by(day)
-        .order_by(day)
+        .order_by(day.desc())
     )
     rows = (await session.execute(stmt)).all()
-    return [{"day": str(r.day), "count": int(r.count)} for r in rows]
+    return [TasksStatsByDayDTO(day=r.day, count=int(r.tasks_count)) for r in rows]
 
 
 async def get_active_users(
     session: AsyncSession,
     *,
     limit: int = 10,
-) -> list[dict]:
+    offset: int = 0,
+) -> list[ActiveUserDTO]:
     open_tasks = func.count(Task.id).label("open_tasks")
     stmt = (
         select(
@@ -178,13 +218,14 @@ async def get_active_users(
         .group_by(User.id, User.username)
         .order_by(open_tasks.desc(), User.username.asc())
         .limit(limit)
+        .offset(offset)
     )
     rows = (await session.execute(stmt)).all()
     return [
-        {
-            "user_id": r.user_id,
-            "username": r.username,
-            "open_tasks": int(r.open_tasks),
-        }
+        ActiveUserDTO(
+            user_id=r.user_id,
+            username=r.username,
+            open_tasks=int(r.open_tasks),
+        )
         for r in rows
     ]

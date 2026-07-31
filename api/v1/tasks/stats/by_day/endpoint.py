@@ -20,4 +20,4 @@ async def get_tasks_stats_by_day_endpoint(
     session: AsyncSession = Depends(get_session),
 ) -> list[TasksStatsByDayItem]:
     rows = await get_tasks_stats_by_day(session=session, user_id=user_id)
-    return [TasksStatsByDayItem(**row) for row in rows]
+    return [TasksStatsByDayItem.from_dto(dto=row) for row in rows]
