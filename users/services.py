@@ -1,8 +1,11 @@
+from uuid import UUID
+
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from users.dto import RegisterUserDTO, UserDTO
-from users.exceptions import UserNotFoundError
+from users.exceptions import UserAlreadyExists, UserNotFoundError
 from users.models import User
 from users.security import hash_password, validate_password_strength, verify_password
 
@@ -32,8 +35,15 @@ async def register_user(session: AsyncSession, *, data: RegisterUserDTO) -> User
         birthdate=data.birthdate,
         hashed_password=hash_password(data.password),
     )
+
     session.add(user)
-    await session.commit()
+
+    try:
+        await session.commit()
+    except IntegrityError:
+        await session.rollback()
+        raise UserAlreadyExists()
+
     await session.refresh(user)
     return user
 
@@ -55,19 +65,19 @@ async def count_users(session: AsyncSession) -> int:
     return int(result.scalar_one())
 
 
-async def _get_user_or_raise(session: AsyncSession, *, user_id: str) -> User:
+async def _get_user_or_raise(session: AsyncSession, *, user_id: UUID) -> User:
     user: User | None = await session.get(User, user_id)
     if user is None:
         raise UserNotFoundError()
     return user
 
 
-async def get_user_by_id(session: AsyncSession, *, user_id: str) -> UserDTO:
+async def get_user_by_id(session: AsyncSession, *, user_id: UUID) -> UserDTO:
     user = await _get_user_or_raise(session, user_id=user_id)
     return _to_dto(user)
 
 
-async def delete_user(session: AsyncSession, *, user_id: str) -> None:
+async def delete_user(session: AsyncSession, *, user_id: UUID) -> None:
     user = await _get_user_or_raise(session, user_id=user_id)
     await session.delete(user)
     await session.commit()

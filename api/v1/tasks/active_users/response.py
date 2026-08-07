@@ -1,4 +1,5 @@
 from typing import Self
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -6,7 +7,7 @@ from tasks.dto import ActiveUserDTO
 
 
 class ActiveUserItem(BaseModel):
-    user_id: str = Field(description="ID пользователя")
+    user_id: UUID = Field(description="ID пользователя")
     username: str = Field(description="Логин")
     open_tasks: int = Field(description="Число невыполненных задач")
 

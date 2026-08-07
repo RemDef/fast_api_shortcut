@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,7 +8,6 @@ from api.v1.users.common.schemas import UserResponse
 from api.v1.users.responses import USER_NOT_FOUND_RESPONSES
 from common.errors import ErrorMessages
 from database import get_session
-from users.dto import UserDTO
 from users.exceptions import UserNotFoundError
 from users.services import get_user_by_id
 
@@ -19,10 +20,10 @@ router = APIRouter(responses=USER_NOT_FOUND_RESPONSES)
     summary="Получить пользователя",
     description="Получить данные пользователя по id (только для админа).",
     response_description="Пользователь получен",
+    dependencies=[Depends(require_admin)],
 )
 async def get_user_endpoint(
-    user_id: str,
-    _: UserDTO = Depends(require_admin),
+    user_id: UUID,
     session: AsyncSession = Depends(get_session),
 ) -> UserResponse:
     try:

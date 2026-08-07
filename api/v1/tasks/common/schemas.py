@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Self
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -7,7 +8,7 @@ from tasks.dto import TaskDTO
 
 
 class TaskResponse(BaseModel):
-    id: str = Field(description="Уникальный идентификатор задачи")
+    id: UUID = Field(description="Уникальный идентификатор задачи")
     title: str = Field(description="Название задачи")
     description: str | None = Field(description="Описание задачи")
     is_done: bool = Field(description="Выполнена ли задача")

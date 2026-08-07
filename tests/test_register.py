@@ -1,4 +1,4 @@
-import pytest
+from http import HTTPStatus
 
 REGISTER_URL = "/v1/users/register"
 
@@ -12,32 +12,36 @@ VALID_USER = {
 }
 
 
-@pytest.mark.asyncio
-async def test_register_user_success(client):
-    response = await client.post(REGISTER_URL, json=VALID_USER)
+class TestRegister:
+    async def test_register_user_success(self, client):
+        response = await client.post(REGISTER_URL, json=VALID_USER)
 
-    assert response.status_code == 201
+        assert response.status_code == HTTPStatus.CREATED
+        data = response.json()
+        assert data["username"] == "test_user"
+        assert data["email"] == "test_user@example.com"
+        assert "id" in data
+        assert set(data.keys()) == {
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "birthdate",
+        }
 
-    data = response.json()
-    assert data["username"] == "test_user"
-    assert data["email"] == "test_user@example.com"
-    assert "id" in data
-    assert "password" not in data
+    async def test_login_after_register(self, client):
+        await client.post(REGISTER_URL, json=VALID_USER)
 
+        response = await client.post(
+            "/v1/auth/login",
+            data={
+                "username": VALID_USER["username"],
+                "password": VALID_USER["password"],
+            },
+        )
 
-@pytest.mark.asyncio
-async def test_login_after_register(client):
-    await client.post(REGISTER_URL, json=VALID_USER)
-
-    response = await client.post(
-        "/v1/auth/login",
-        data={
-            "username": VALID_USER["username"],
-            "password": VALID_USER["password"],
-        },
-    )
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
-    assert data["token_type"] == "bearer"
+        assert response.status_code == HTTPStatus.OK
+        data = response.json()
+        assert data["token_type"] == "bearer"
+        assert set(data.keys()) == {"access_token", "token_type"}

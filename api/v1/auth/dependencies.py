@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -34,15 +36,22 @@ async def get_current_user_model(
     except JWTError:
         raise credentials_exception
 
+    if not isinstance(user_id, str):
+        raise credentials_exception
     try:
-        return await get_user_by_id(session=session, user_id=user_id)
+        user_uuid = UUID(user_id)
+    except ValueError:
+        raise credentials_exception
+
+    try:
+        return await get_user_by_id(session=session, user_id=user_uuid)
     except UserNotFoundError:
         raise credentials_exception
 
 
 async def get_current_user(
     user: UserDTO = Depends(get_current_user_model),
-) -> str:
+) -> UUID:
     return user.id
 
 

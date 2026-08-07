@@ -1,5 +1,4 @@
 from typing import Annotated
-from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,18 +7,11 @@ from api.v1.auth.dependencies import require_admin
 from api.v1.users.common.schemas import UserResponse
 from api.v1.users.get_list.query import UserQuery
 from api.v1.users.get_list.response import PaginatedUsersResponse
+from common.pagination import page_url
 from database import get_session
-from users.dto import UserDTO
 from users.services import count_users, get_users
 
 router = APIRouter()
-
-
-def _page_url(request: Request, *, limit: int, offset: int) -> str:
-    query_params = dict(request.query_params)
-    query_params["limit"] = str(limit)
-    query_params["offset"] = str(offset)
-    return str(request.url.replace(query=urlencode(query_params)))
 
 
 @router.get(
@@ -28,11 +20,11 @@ def _page_url(request: Request, *, limit: int, offset: int) -> str:
     summary="Получить пользователей",
     description="Получить список пользователей (только для админа).",
     response_description="Пользователи получены",
+    dependencies=[Depends(require_admin)],
 )
 async def get_users_endpoint(
     request: Request,
     query: Annotated[UserQuery, Query()],
-    _: UserDTO = Depends(require_admin),
     session: AsyncSession = Depends(get_session),
 ) -> PaginatedUsersResponse:
     users = await get_users(
@@ -44,12 +36,12 @@ async def get_users_endpoint(
 
     next_offset = query.offset + query.limit
     next_url = (
-        _page_url(request, limit=query.limit, offset=next_offset)
+        page_url(request, limit=query.limit, offset=next_offset)
         if next_offset < total
         else None
     )
     previous_url = (
-        _page_url(
+        page_url(
             request,
             limit=query.limit,
             offset=max(query.offset - query.limit, 0),

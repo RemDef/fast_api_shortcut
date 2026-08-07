@@ -1,6 +1,6 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
-from sqlalchemy import String
+from sqlalchemy import Uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
 
@@ -11,6 +11,4 @@ class Base(DeclarativeBase):
     def __tablename__(cls) -> str:
         return cls.__name__.lower()
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid4())
-    )
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)

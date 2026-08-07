@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,7 +18,7 @@ router = APIRouter()
     description="Количество выполненных/невыполненных задач и процент завершённых.",
 )
 async def get_tasks_stats_total_endpoint(
-    user_id: str = Depends(get_current_user),
+    user_id: UUID = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> TasksStatsTotalResponse:
     stats = await get_tasks_stats_total(session=session, user_id=user_id)

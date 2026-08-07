@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from datetime import date, datetime
+from uuid import UUID
 
 
 @dataclass(slots=True, frozen=True)
 class TaskDTO:
-    id: str
+    id: UUID
     title: str
     description: str | None
     is_done: bool
@@ -28,6 +29,6 @@ class TasksStatsTotalDTO:
 
 @dataclass(slots=True, frozen=True)
 class ActiveUserDTO:
-    user_id: str
+    user_id: UUID
     username: str
     open_tasks: int

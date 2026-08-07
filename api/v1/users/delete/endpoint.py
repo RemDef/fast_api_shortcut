@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -5,7 +7,6 @@ from api.v1.auth.dependencies import require_admin
 from api.v1.users.responses import USER_NOT_FOUND_RESPONSES
 from common.errors import ErrorMessages
 from database import get_session
-from users.dto import UserDTO
 from users.exceptions import UserNotFoundError
 from users.services import delete_user
 
@@ -18,10 +19,10 @@ router = APIRouter(responses=USER_NOT_FOUND_RESPONSES)
     summary="Удалить пользователя",
     description="Удаляет пользователя с сервиса.",
     response_description="Пользователь удален",
+    dependencies=[Depends(require_admin)],
 )
 async def delete_user_endpoint(
-    user_id: str,
-    _: UserDTO = Depends(require_admin),
+    user_id: UUID,
     session: AsyncSession = Depends(get_session),
 ) -> None:
     try:

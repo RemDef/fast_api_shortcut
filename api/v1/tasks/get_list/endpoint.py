@@ -1,5 +1,5 @@
 from typing import Annotated
-from urllib.parse import urlencode
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,17 +8,14 @@ from api.v1.auth.dependencies import get_current_user
 from api.v1.tasks.common.schemas import TaskResponse
 from api.v1.tasks.get_list.query import TaskQuery
 from api.v1.tasks.get_list.response import PaginatedTasksResponse
+from cache.backend import RedisCacheBackend
+from cache.dependencies import get_cache
+from common.pagination import page_url
 from database import get_session
+from tasks.cache_keys import tasks_list_key
 from tasks.services import count_tasks, get_tasks
 
 router = APIRouter()
-
-
-def _page_url(request: Request, *, limit: int, offset: int) -> str:
-    query_params = dict(request.query_params)
-    query_params["limit"] = str(limit)
-    query_params["offset"] = str(offset)
-    return str(request.url.replace(query=urlencode(query_params)))
 
 
 @router.get(
@@ -31,9 +28,16 @@ def _page_url(request: Request, *, limit: int, offset: int) -> str:
 async def get_tasks_endpoint(
     request: Request,
     query: Annotated[TaskQuery, Query()],
-    user_id: str = Depends(get_current_user),
+    user_id: UUID = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
+    cache: RedisCacheBackend = Depends(get_cache),
 ) -> PaginatedTasksResponse:
+
+    key = tasks_list_key(user_id, query)
+    cached = await cache.get(key)
+    if cached is not None:
+        return PaginatedTasksResponse(**cached)
+
     tasks = await get_tasks(
         session=session,
         user_id=user_id,
@@ -57,12 +61,12 @@ async def get_tasks_endpoint(
 
     next_offset = query.offset + query.limit
     next_url = (
-        _page_url(request, limit=query.limit, offset=next_offset)
+        page_url(request, limit=query.limit, offset=next_offset)
         if next_offset < total
         else None
     )
     previous_url = (
-        _page_url(
+        page_url(
             request,
             limit=query.limit,
             offset=max(query.offset - query.limit, 0),
@@ -71,9 +75,11 @@ async def get_tasks_endpoint(
         else None
     )
 
-    return PaginatedTasksResponse(
+    response = PaginatedTasksResponse(
         count=total,
         next=next_url,
         previous=previous_url,
         results=[TaskResponse.from_dto(dto=task) for task in tasks],
     )
+    await cache.set(key, response.model_dump(mode="json"))
+    return response

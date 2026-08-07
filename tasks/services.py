@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import cast
+from uuid import UUID
 
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,8 +28,9 @@ def _to_dto(task: Task) -> TaskDTO:
 
 
 async def create_task(
-    session: AsyncSession, *, user_id: str, title: str, description: str | None
+    session: AsyncSession, *, user_id: UUID, title: str, description: str | None
 ) -> TaskDTO:
+
     task = Task(title=title, description=description, user_id=user_id)
     session.add(task)
     await session.commit()
@@ -37,7 +39,7 @@ async def create_task(
 
 
 async def _get_task_or_raise(
-    session: AsyncSession, *, task_id: str, user_id: str
+    session: AsyncSession, *, task_id: UUID, user_id: UUID
 ) -> Task:
     result = await session.execute(
         select(Task).where(Task.id == task_id, Task.user_id == user_id)
@@ -49,7 +51,7 @@ async def _get_task_or_raise(
 
 
 async def get_task_by_id(
-    session: AsyncSession, *, task_id: str, user_id: str
+    session: AsyncSession, *, task_id: UUID, user_id: UUID
 ) -> TaskDTO:
     task = await _get_task_or_raise(session, task_id=task_id, user_id=user_id)
     return _to_dto(task)
@@ -58,7 +60,7 @@ async def get_task_by_id(
 async def get_tasks(
     session: AsyncSession,
     *,
-    user_id: str,
+    user_id: UUID,
     limit: int = 20,
     offset: int = 0,
     is_done: bool | None = None,
@@ -101,7 +103,7 @@ async def get_tasks(
 async def count_tasks(
     session: AsyncSession,
     *,
-    user_id: str,
+    user_id: UUID,
     is_done: bool | None = None,
     created_from: datetime | None = None,
     created_to: datetime | None = None,
@@ -133,8 +135,8 @@ async def count_tasks(
 async def update_task(
     session: AsyncSession,
     *,
-    task_id: str,
-    user_id: str,
+    task_id: UUID,
+    user_id: UUID,
     title: str | None | object = UNSET,
     description: str | None | object = UNSET,
     is_done: bool | object = UNSET,
@@ -153,14 +155,14 @@ async def update_task(
     return _to_dto(task)
 
 
-async def delete_task(session: AsyncSession, *, task_id: str, user_id: str) -> None:
+async def delete_task(session: AsyncSession, *, task_id: UUID, user_id: UUID) -> None:
     task = await _get_task_or_raise(session, task_id=task_id, user_id=user_id)
     await session.delete(task)
     await session.commit()
 
 
 async def get_tasks_stats_total(
-    session: AsyncSession, *, user_id: str
+    session: AsyncSession, *, user_id: UUID
 ) -> TasksStatsTotalDTO:
     stmt = select(
         func.count().label("total"),
@@ -184,7 +186,7 @@ async def get_tasks_stats_total(
 
 
 async def get_tasks_stats_by_day(
-    session: AsyncSession, *, user_id: str
+    session: AsyncSession, *, user_id: UUID
 ) -> list[TasksStatsByDayDTO]:
     day = func.date(Task.created_at)
     stmt = (

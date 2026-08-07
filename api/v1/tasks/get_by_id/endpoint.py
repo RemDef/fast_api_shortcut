@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,8 +22,8 @@ router = APIRouter(responses=TASK_NOT_FOUND_RESPONSES)
     response_description="Задача получена",
 )
 async def get_task_endpoint(
-    task_id: str,
-    user_id: str = Depends(get_current_user),
+    task_id: UUID,
+    user_id: UUID = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> TaskResponse:
     try:

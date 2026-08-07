@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.users.register.request import RegisterUserRequest
 from api.v1.users.register.response import RegisterUserResponse
+from common.errors import ErrorMessages
 from database import get_session
 from users.dto import RegisterUserDTO
+from users.exceptions import UserAlreadyExists
 from users.services import register_user
 
 router = APIRouter()
@@ -30,7 +32,13 @@ async def register_user_endpoint(
         last_name=body.last_name,
         birthdate=body.birthdate,
     )
-    user = await register_user(session=session, data=data)
+    try:
+        user = await register_user(session=session, data=data)
+    except UserAlreadyExists:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ErrorMessages.USER_ALREADY_EXISTS,
+        )
 
     return RegisterUserResponse(
         id=user.id,

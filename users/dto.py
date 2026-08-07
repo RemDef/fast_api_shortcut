@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
+from uuid import UUID
 
 
 @dataclass(slots=True, frozen=True)
@@ -14,7 +15,7 @@ class RegisterUserDTO:
 
 @dataclass(slots=True, frozen=True)
 class UserDTO:
-    id: str
+    id: UUID
     username: str
     email: str
     first_name: str

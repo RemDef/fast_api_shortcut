@@ -1,12 +1,13 @@
 from datetime import date, datetime
 from typing import Annotated
+from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
 
 class UserResponse(BaseModel):
     id: Annotated[
-        str,
+        UUID,
         Field(description="Уникальный идентификатор пользователя"),
     ]
     username: Annotated[

@@ -3,6 +3,7 @@ from enum import StrEnum
 
 class ErrorMessages(StrEnum):
     USER_NOT_FOUND = "Пользователь не найден"
+    USER_ALREADY_EXISTS = "Пользователь уже существует"
     TASK_NOT_FOUND = "Задача не найдена"
     NOT_THIS_USER_TASK = "Нет доступа к этой задаче"
     INVALID_CREDENTIALS = "Неверный логин или пароль"

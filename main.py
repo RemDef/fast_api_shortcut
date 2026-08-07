@@ -1,15 +1,14 @@
 import logging
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 import uvicorn
 from fastapi import FastAPI
 
 from api.router import router
-from common.models import Base
-from database import db_helper
+from config import settings
 from middleware.logging import LoggingMiddleware
-from tasks.models import Task  # noqa: F401
-from users.models import User  # noqa: F401
+from middleware.rate_limit import RateLimitMiddleware
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,10 +16,15 @@ logging.basicConfig(
 )
 
 
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        send_default_pii=False,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with db_helper.engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield
 
 
@@ -32,6 +36,7 @@ app = FastAPI(
 )
 
 app.add_middleware(LoggingMiddleware)  # type: ignore[arg-type]
+app.add_middleware(RateLimitMiddleware)  # type: ignore[arg-type]
 
 app.include_router(router)
 
@@ -41,5 +46,10 @@ def check_site_work():
     return "Hello World!"
 
 
+@app.get("/sentry-debug")
+def trigger_error():
+    raise ZeroDivisionError("sentry test")
+
+
 if __name__ == "__main__":
-    uvicorn.run("main:app", reload=True, reload_dirs=["."], port=7994)
+    uvicorn.run("main:app", reload=True, reload_dirs=["."], port=7995)

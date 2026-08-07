@@ -1,13 +1,11 @@
-import pytest
+from http import HTTPStatus
 
 
-@pytest.mark.asyncio
-async def test_users_list_forbidden_for_non_admin(client, auth_headers):
-    response = await client.get("/v1/users/", headers=auth_headers)
-    assert response.status_code == 403
+class TestUsersAccess:
+    async def test_users_list_forbidden_for_non_admin(self, client, auth_headers):
+        response = await client.get("/v1/users/", headers=auth_headers)
+        assert response.status_code == HTTPStatus.FORBIDDEN
 
-
-@pytest.mark.asyncio
-async def test_users_list_unauthorized(client):
-    response = await client.get("/v1/users/")
-    assert response.status_code == 401
+    async def test_users_list_unauthorized(self, client):
+        response = await client.get("/v1/users/")
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
