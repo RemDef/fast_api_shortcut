@@ -1,6 +1,5 @@
 import logging
 
-from jose import JWTError, jwt
 from starlette import status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -8,6 +7,7 @@ from starlette.responses import JSONResponse, Response
 
 from cache.dependencies import cache_backend
 from cache.rate_limit import is_rate_limit_allowed
+from common.auth import get_user_id_from_token
 from config import settings
 
 logger = logging.getLogger("rate_limit")
@@ -17,17 +17,9 @@ def _client_key(request: Request) -> str:
     auth = request.headers.get("Authorization")
     if auth and auth.lower().startswith("bearer "):
         token = auth.split(" ", 1)[1]
-        try:
-            payload = jwt.decode(
-                token,
-                settings.jwt_secret_key,
-                algorithms=[settings.jwt_algorithm],
-            )
-            user_id = payload.get("sub")
-            if user_id:
-                return f"ratelimit:user:{user_id}"
-        except JWTError:
-            pass
+        user_id = get_user_id_from_token(token)
+        if user_id:
+            return f"ratelimit:user:{user_id}"
 
     ip = request.client.host if request.client else "unknown"
     return f"ratelimit:ip:{ip}"

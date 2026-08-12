@@ -8,8 +8,8 @@ class RedisCacheBackend:
         self.redis = Redis.from_url(redis_url, decode_responses=True)
         self.cache_ttl_seconds = cache_ttl_seconds
 
-    async def set(self, key: str, value: dict) -> None:
-        await self.redis.set(key, json.dumps(value), ex=self.cache_ttl_seconds)
+    async def set(self, key: str, value: dict, ttl: int | None = None) -> None:
+        await self.redis.set(key, json.dumps(value), ex=ttl or self.cache_ttl_seconds)
 
     async def get(self, key: str) -> dict | None:
         raw = await self.redis.get(key)

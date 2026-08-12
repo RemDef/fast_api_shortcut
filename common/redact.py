@@ -2,7 +2,7 @@ import json
 from typing import Any
 from urllib.parse import parse_qsl, urlencode
 
-SENSITIVE_KEYS = frozenset({"password", "birthdate"})
+SENSITIVE_KEYS = frozenset({"password", "birthdate", "access_token"})
 
 
 def _redact_value(data: Any) -> Any:

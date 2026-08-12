@@ -2,11 +2,10 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from common.auth import get_user_id_from_token
 from common.errors import ErrorMessages
-from config import settings
 from database import get_session
 from users.dto import UserDTO
 from users.exceptions import UserNotFoundError
@@ -24,23 +23,9 @@ async def get_current_user_model(
         detail=ErrorMessages.INVALID_TOKEN,
         headers={"WWW-Authenticate": "Bearer"},
     )
-    try:
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret_key,
-            algorithms=[settings.jwt_algorithm],
-        )
-        user_id = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
 
-    if not isinstance(user_id, str):
-        raise credentials_exception
-    try:
-        user_uuid = UUID(user_id)
-    except ValueError:
+    user_uuid = get_user_id_from_token(token)
+    if user_uuid is None:
         raise credentials_exception
 
     try:

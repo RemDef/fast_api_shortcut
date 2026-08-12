@@ -5,7 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from middleware.redact import redact_body
+from common.redact import redact_body
 
 logger = logging.getLogger("http")
 
