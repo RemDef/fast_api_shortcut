@@ -24,7 +24,7 @@ def _to_dto(user: User) -> UserDTO:
     )
 
 
-async def register_user(session: AsyncSession, *, data: RegisterUserDTO) -> User:
+async def register_user(session: AsyncSession, *, data: RegisterUserDTO) -> UserDTO:
     validate_password_strength(data.password)
 
     user = User(
@@ -45,7 +45,7 @@ async def register_user(session: AsyncSession, *, data: RegisterUserDTO) -> User
         raise UserAlreadyExists()
 
     await session.refresh(user)
-    return user
+    return _to_dto(user)
 
 
 async def get_users(
